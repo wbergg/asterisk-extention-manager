@@ -1,0 +1,14 @@
+{
+    "listen_addr": ":8080",
+    "db_path": "./data/extensions.db",
+    "jwt_secret": "change-me",
+    "pjsip_conf_path": "/etc/asterisk/pjsip_custom.conf",
+    "asterisk_cmd": "asterisk",
+    "admin_user": "admin",
+    "admin_pass": "admin",
+    "cdr_log_path": "/var/log/asterisk/cdr-csv/Master.csv",
+    "tls_domain": "",
+    "tls_cert_dir": "./certs",
+    "tls_cert_file": "",
+    "tls_key_file": ""
+}

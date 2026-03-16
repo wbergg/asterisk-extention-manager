@@ -1,0 +1,11 @@
+aem
+data/*.db
+data/*.db-wal
+data/*.db-shm
+test_pjsip.conf
+pjsip_custom.conf
+frontend/node_modules/
+frontend/dist/
+test/
+certs/
+config/config.json
