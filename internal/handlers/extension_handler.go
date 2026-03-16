@@ -67,13 +67,20 @@ func (h *ExtensionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if req.SIPPassword != "" {
+		if msg := ValidatePassword(req.SIPPassword, 8); msg != "" {
+			http.Error(w, fmt.Sprintf(`{"error":"%s"}`, msg), http.StatusBadRequest)
+			return
+		}
+	}
+
 	ext := &models.Extension{
 		Extension: req.Extension,
 		UserID:    claims.UserID,
 		CallerID:  req.CallerID,
 	}
 
-	if err := models.CreateExtension(h.DB, ext); err != nil {
+	if err := models.CreateExtension(h.DB, ext, req.SIPPassword); err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint") {
 			http.Error(w, `{"error":"extension already taken"}`, http.StatusConflict)
 			return

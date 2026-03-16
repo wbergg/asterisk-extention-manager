@@ -31,10 +31,10 @@ export const useExtensionsStore = defineStore('extensions', () => {
     }
   }
 
-  async function createExtension(ext: number, callerid: string) {
+  async function createExtension(ext: number, callerid: string, sip_password?: string) {
     error.value = null
     try {
-      const res = await api.post('/extensions', { extension: ext, callerid })
+      const res = await api.post('/extensions', { extension: ext, callerid, sip_password: sip_password || '' })
       extensions.value.push(res.data)
       return res.data
     } catch (e: any) {

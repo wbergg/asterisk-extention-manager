@@ -3,7 +3,6 @@ package models
 import (
 	"crypto/rand"
 	"database/sql"
-	"encoding/hex"
 	"fmt"
 	"time"
 )
@@ -20,20 +19,28 @@ type Extension struct {
 }
 
 func GenerateSIPPassword() (string, error) {
-	b := make([]byte, 16)
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 10)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(b)[:16], nil
+	for i := range b {
+		b[i] = chars[b[i]%byte(len(chars))]
+	}
+	return string(b), nil
 }
 
-func CreateExtension(db *sql.DB, ext *Extension) error {
-	sipPass, err := GenerateSIPPassword()
-	if err != nil {
-		return fmt.Errorf("generate sip password: %w", err)
+func CreateExtension(db *sql.DB, ext *Extension, sipPassword string) error {
+	if sipPassword != "" {
+		ext.SIPPassword = sipPassword
+	} else {
+		sipPass, err := GenerateSIPPassword()
+		if err != nil {
+			return fmt.Errorf("generate sip password: %w", err)
+		}
+		ext.SIPPassword = sipPass
 	}
 	ext.SIPUsername = fmt.Sprintf("%d", ext.Extension)
-	ext.SIPPassword = sipPass
 	ext.Context = "internal"
 
 	res, err := db.Exec(

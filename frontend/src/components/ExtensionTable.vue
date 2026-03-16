@@ -144,7 +144,7 @@ const canSave = computed(() => sipPasswordValid.value)
 
 function generateSipPassword() {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  const arr = new Uint8Array(16)
+  const arr = new Uint8Array(10)
   crypto.getRandomValues(arr)
   editSipPassword.value = Array.from(arr, (b) => chars[b % chars.length]).join('')
 }
