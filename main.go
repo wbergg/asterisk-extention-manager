@@ -124,19 +124,41 @@ func main() {
 		fileServer.ServeHTTP(w, r)
 	})
 
+	// HTTP handler for port 80: serve Cisco phone endpoints, redirect the rest
+	httpHandler := func(fallback http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			switch req.URL.Path {
+			case "/directory.xml":
+				extHandler.Directory(w, req)
+			case "/logo.bmp":
+				data, err := fs.ReadFile(frontendDist, "logo.bmp")
+				if err != nil {
+					http.NotFound(w, req)
+					return
+				}
+				w.Header().Set("Content-Type", "image/bmp")
+				w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+				w.Write(data)
+			default:
+				if fallback != nil {
+					fallback.ServeHTTP(w, req)
+					return
+				}
+				http.Redirect(w, req, "https://"+req.Host+req.RequestURI, http.StatusMovedPermanently)
+			}
+		})
+	}
+
 	if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
 		// HTTPS with existing certificate
-		// Redirect HTTP to HTTPS
 		go func() {
-			log.Printf("Starting HTTP redirect on :80")
+			log.Printf("Starting HTTP on :80 (directory.xml, logo.bmp + redirect)")
 			srv := &http.Server{
-				Addr: ":80",
-				Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-					http.Redirect(w, req, "https://"+req.Host+req.RequestURI, http.StatusMovedPermanently)
-				}),
+				Addr:    ":80",
+				Handler: httpHandler(nil),
 			}
 			if err := srv.ListenAndServe(); err != nil {
-				log.Printf("HTTP redirect server: %v", err)
+				log.Printf("HTTP server: %v", err)
 			}
 		}()
 
@@ -156,15 +178,14 @@ func main() {
 			HostPolicy: autocert.HostWhitelist(cfg.TLSDomain),
 		}
 
-		// Redirect HTTP to HTTPS
 		go func() {
-			log.Printf("Starting HTTP redirect on :80")
+			log.Printf("Starting HTTP on :80 (directory.xml, logo.bmp + ACME + redirect)")
 			srv := &http.Server{
 				Addr:    ":80",
-				Handler: m.HTTPHandler(nil),
+				Handler: httpHandler(m.HTTPHandler(nil)),
 			}
 			if err := srv.ListenAndServe(); err != nil {
-				log.Printf("HTTP redirect server: %v", err)
+				log.Printf("HTTP server: %v", err)
 			}
 		}()
 
