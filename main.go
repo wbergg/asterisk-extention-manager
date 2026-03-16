@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
@@ -93,6 +94,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get frontend sub-filesystem: %v", err)
 	}
+	// Serve logo.bmp with correct headers for Cisco phones
+	r.Get("/logo.bmp", func(w http.ResponseWriter, r *http.Request) {
+		data, err := fs.ReadFile(frontendDist, "logo.bmp")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "image/bmp")
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+		w.Write(data)
+	})
+
 	fileServer := http.FileServer(http.FS(frontendDist))
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/")
