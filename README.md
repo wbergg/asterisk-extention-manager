@@ -117,7 +117,7 @@ Three modes depending on which TLS fields are set:
 
 **Plain HTTP** — leave all TLS fields empty, uses `listen_addr`.
 
-Both HTTPS modes bind ports 443 (HTTPS) and 80 (HTTP→HTTPS redirect). The process needs permission to bind these ports:
+Both HTTPS modes bind port 443 (HTTPS) and port 80. On port 80, `/directory.xml` and `/logo.bmp` are served directly over plain HTTP (for Cisco IP phones that don't support HTTPS), while all other requests are redirected to HTTPS. The process needs permission to bind these ports:
 
 ```bash
 # Allow unprivileged port binding (persistent)
@@ -262,11 +262,14 @@ Call log access is enabled for all users by default. Admins can disable it per-u
 
 ## Cisco IP Phone Directory
 
-AEM serves a Cisco XML directory at `/directory.xml` for use with Cisco IP phones (7900 series, etc.). Configure the phone's directory URL to point at:
+AEM serves a Cisco XML directory at `/directory.xml` and a phone logo at `/logo.bmp` for use with Cisco IP phones (7900 series, etc.). These endpoints are always available over plain HTTP on port 80, even when HTTPS is enabled. Configure the phone URLs:
 
 ```
-http://your-server:8080/directory.xml
+Directory: http://your-server/directory.xml
+Logo:      http://your-server/logo.bmp
 ```
+
+Place your `logo.bmp` in `frontend/public/` before building (Cisco 7900 series uses 80x53 pixel 1-bit BMP).
 
 ## License
 
