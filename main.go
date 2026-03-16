@@ -95,13 +95,17 @@ func main() {
 	}
 	fileServer := http.FileServer(http.FS(frontendDist))
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
-		// Try to serve the file directly; if not found, serve index.html (SPA fallback)
 		path := strings.TrimPrefix(r.URL.Path, "/")
 		if path == "" {
 			path = "index.html"
 		}
 		if _, err := fs.Stat(frontendDist, path); err != nil {
-			// SPA fallback
+			// Only SPA fallback for paths without a file extension (frontend routes)
+			// Paths with extensions that don't exist are actual 404s
+			if strings.Contains(path, ".") {
+				http.NotFound(w, r)
+				return
+			}
 			r.URL.Path = "/"
 		}
 		fileServer.ServeHTTP(w, r)
