@@ -106,6 +106,16 @@ func main() {
 		w.Write(data)
 	})
 
+	// Known frontend routes that should get SPA fallback (serve index.html)
+	spaRoutes := map[string]bool{
+		"login":      true,
+		"extensions": true,
+		"directory":  true,
+		"settings":   true,
+		"call-log":   true,
+		"admin":      true,
+	}
+
 	fileServer := http.FileServer(http.FS(frontendDist))
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/")
@@ -113,13 +123,13 @@ func main() {
 			path = "index.html"
 		}
 		if _, err := fs.Stat(frontendDist, path); err != nil {
-			// Only SPA fallback for paths without a file extension (frontend routes)
-			// Paths with extensions that don't exist are actual 404s
-			if strings.Contains(path, ".") {
+			// Only serve SPA fallback for known frontend routes
+			if spaRoutes[path] {
+				r.URL.Path = "/"
+			} else {
 				http.NotFound(w, r)
 				return
 			}
-			r.URL.Path = "/"
 		}
 		fileServer.ServeHTTP(w, r)
 	})
