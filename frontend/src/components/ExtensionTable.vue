@@ -1,16 +1,16 @@
 <template>
   <div class="bg-white rounded-lg shadow overflow-hidden">
     <!-- Inline Edit Form -->
-    <div v-if="editingExt" class="p-6 border-b border-blue-200 bg-blue-50">
+    <div v-if="editingExt" class="p-4 sm:p-6 border-b border-blue-200 bg-blue-50">
       <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Extension {{ editingExt.extension }}</h3>
       <form @submit.prevent="handleSave" class="space-y-4">
-        <div class="flex items-end gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Caller ID</label>
             <input
               v-model="editCallerid"
               type="text"
-              class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
@@ -19,7 +19,7 @@
               <input
                 v-model="editSipPassword"
                 type="text"
-                class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                class="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                 placeholder="unchanged"
               />
               <button
@@ -62,6 +62,7 @@
       </form>
     </div>
 
+    <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
@@ -111,6 +112,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
   </div>
 </template>
 

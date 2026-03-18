@@ -14,24 +14,8 @@
     <nav v-if="authStore.isLoggedIn" class="bg-gray-900 text-white shadow-lg">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
-          <div class="flex items-center space-x-8">
-            <span class="text-xl font-bold tracking-tight">Asterisk Extention Manager</span>
-            <router-link to="/extensions" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-              Extensions
-            </router-link>
-            <router-link to="/directory" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-              Directory
-            </router-link>
-            <router-link v-if="authStore.hasCallLogAccess" to="/call-log" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-              Call Log
-            </router-link>
-            <router-link to="/settings" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-              Settings
-            </router-link>
-            <router-link v-if="authStore.isAdmin" to="/admin" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-              Admin
-            </router-link>
-          </div>
+          <span class="text-xl font-bold tracking-tight hidden sm:block">Asterisk Extention Manager</span>
+          <span class="text-lg font-bold tracking-tight sm:hidden">AEM</span>
           <div class="flex items-center space-x-4">
             <!-- User dropdown for admins -->
             <div v-if="authStore.isRealAdmin && !authStore.isImpersonating" class="relative">
@@ -67,6 +51,23 @@
               Logout
             </button>
           </div>
+        </div>
+        <div class="flex overflow-x-auto -mb-px space-x-1 pb-2 sm:pb-0 sm:space-x-4">
+          <router-link to="/extensions" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+            Extensions
+          </router-link>
+          <router-link to="/directory" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+            Directory
+          </router-link>
+          <router-link v-if="authStore.hasCallLogAccess" to="/call-log" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+            Call Log
+          </router-link>
+          <router-link to="/settings" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+            Settings
+          </router-link>
+          <router-link v-if="authStore.isAdmin" to="/admin" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+            Admin
+          </router-link>
         </div>
       </div>
     </nav>

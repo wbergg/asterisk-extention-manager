@@ -49,39 +49,43 @@
       <!-- Edit Extension Form -->
       <div v-if="editingExt" class="bg-white rounded-lg shadow p-6 mb-6 border border-blue-200">
         <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Extension {{ editingExt.extension }}</h3>
-        <form @submit.prevent="handleExtSave" class="flex items-end gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Caller ID</label>
-            <input
-              v-model="editingExt.callerid"
-              type="text"
-              class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">SIP Password (leave blank to keep)</label>
-            <div class="flex gap-2">
+        <form @submit.prevent="handleExtSave" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Caller ID</label>
               <input
-                v-model="editingExtPassword"
+                v-model="editingExt.callerid"
                 type="text"
-                class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                placeholder="unchanged"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <button
-                type="button"
-                @click="generateSipPassword"
-                class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded-md whitespace-nowrap"
-              >
-                Generate
-              </button>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">SIP Password (leave blank to keep)</label>
+              <div class="flex gap-2">
+                <input
+                  v-model="editingExtPassword"
+                  type="text"
+                  class="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  placeholder="unchanged"
+                />
+                <button
+                  type="button"
+                  @click="generateSipPassword"
+                  class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded-md whitespace-nowrap"
+                >
+                  Generate
+                </button>
+              </div>
             </div>
           </div>
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md">Save</button>
-          <button type="button" @click="editingExt = null" class="text-gray-600 hover:text-gray-800 font-medium py-2 px-4">Cancel</button>
+          <div class="flex gap-4">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md">Save</button>
+            <button type="button" @click="editingExt = null" class="text-gray-600 hover:text-gray-800 font-medium py-2 px-4">Cancel</button>
+          </div>
         </form>
       </div>
 
-      <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="bg-white rounded-lg shadow overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
@@ -128,14 +132,14 @@
       <h2 class="text-xl font-semibold text-gray-800 mb-4">Blocked Extensions</h2>
 
       <div class="bg-white rounded-lg shadow p-6 mb-4">
-        <form @submit.prevent="handleBlock" class="flex items-end gap-4">
+        <form @submit.prevent="handleBlock" class="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-end gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Extension Number</label>
             <input
               v-model.number="blockExt"
               type="number"
               required
-              class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="e.g. 1009"
             />
           </div>
@@ -144,16 +148,16 @@
             <input
               v-model="blockReason"
               type="text"
-              class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="e.g. Reserved for lobby phone"
             />
           </div>
-          <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-md">Block</button>
+          <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-md">Block</button>
         </form>
         <p v-if="blockError" class="mt-3 text-red-600 text-sm">{{ blockError }}</p>
       </div>
 
-      <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="bg-white rounded-lg shadow overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
