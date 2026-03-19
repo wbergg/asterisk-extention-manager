@@ -10,6 +10,7 @@ export interface Extension {
   sip_password: string
   callerid: string
   context: string
+  directory_only: boolean
   created_at: string
 }
 

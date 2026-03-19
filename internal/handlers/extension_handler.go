@@ -199,6 +199,47 @@ func (h *ExtensionHandler) ListAll(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(exts)
 }
 
+type adminCreateDirectoryRequest struct {
+	Extension int    `json:"extension"`
+	CallerID  string `json:"callerid"`
+}
+
+func (h *ExtensionHandler) AdminCreateDirectory(w http.ResponseWriter, r *http.Request) {
+	claims := auth.ClaimsFromContext(r.Context())
+
+	var req adminCreateDirectoryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.Extension <= 0 {
+		http.Error(w, `{"error":"invalid extension number"}`, http.StatusBadRequest)
+		return
+	}
+
+	ext := &models.Extension{
+		Extension: req.Extension,
+		UserID:    claims.UserID,
+		CallerID:  req.CallerID,
+	}
+
+	if err := models.CreateDirectoryOnlyExtension(h.DB, ext); err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint") {
+			http.Error(w, `{"error":"extension already taken"}`, http.StatusConflict)
+			return
+		}
+		http.Error(w, `{"error":"failed to create directory entry"}`, http.StatusInternalServerError)
+		return
+	}
+
+	models.AuditLog(h.DB, claims.UserID, "admin_create_directory_entry", fmt.Sprintf("ext=%d", ext.Extension))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(ext)
+}
+
 type adminExtensionUpdateRequest struct {
 	CallerID    string `json:"callerid"`
 	SIPPassword string `json:"sip_password"`

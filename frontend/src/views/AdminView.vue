@@ -32,13 +32,56 @@
     <section class="mb-12">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-semibold text-gray-800">All Extensions</h2>
-        <button
-          @click="handleForceSync"
-          :disabled="syncing"
-          class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-4 py-2 rounded disabled:opacity-50"
-        >
-          {{ syncing ? 'Syncing...' : 'Force Sync' }}
-        </button>
+        <div class="flex gap-2">
+          <button
+            @click="showDirectoryForm = !showDirectoryForm"
+            class="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded"
+          >
+            Add Directory Entry
+          </button>
+          <button
+            @click="handleForceSync"
+            :disabled="syncing"
+            class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-4 py-2 rounded disabled:opacity-50"
+          >
+            {{ syncing ? 'Syncing...' : 'Force Sync' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Add Directory Entry Form -->
+      <div v-if="showDirectoryForm" class="bg-white rounded-lg shadow p-6 mb-6 border border-green-200">
+        <h3 class="text-lg font-medium text-gray-900 mb-1">Add Directory / Phonebook Entry</h3>
+        <p class="text-sm text-gray-500 mb-4">For numbers already routed in extensions.conf (IVR, ring groups, etc.). No SIP credentials are generated and no pjsip config is written.</p>
+        <form @submit.prevent="handleDirectoryCreate" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Extension Number</label>
+              <input
+                v-model.number="dirExt"
+                type="number"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="e.g. 200"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Display Name (Caller ID)</label>
+              <input
+                v-model="dirCallerID"
+                type="text"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="e.g. Reception"
+              />
+            </div>
+          </div>
+          <p v-if="dirError" class="text-red-600 text-sm">{{ dirError }}</p>
+          <div class="flex gap-4">
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-md">Add Entry</button>
+            <button type="button" @click="showDirectoryForm = false" class="text-gray-600 hover:text-gray-800 font-medium py-2 px-4">Cancel</button>
+          </div>
+        </form>
       </div>
 
       <div v-if="syncMessage" class="mb-4 px-4 py-3 rounded text-sm"
@@ -59,7 +102,7 @@
                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <div>
+            <div v-if="!editingExt.directory_only">
               <label class="block text-sm font-medium text-gray-700 mb-1">SIP Password (leave blank to keep)</label>
               <div class="flex gap-2">
                 <input
@@ -99,11 +142,15 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
-            <tr v-for="ext in allExtensions" :key="ext.id">
-              <td class="px-6 py-4 text-sm font-mono font-semibold">{{ ext.extension }}</td>
-              <td class="px-6 py-4 text-sm font-mono">{{ ext.sip_username }}</td>
+            <tr v-for="ext in allExtensions" :key="ext.id" :class="ext.directory_only ? 'bg-green-50' : ''">
+              <td class="px-6 py-4 text-sm font-mono font-semibold">
+                {{ ext.extension }}
+                <span v-if="ext.directory_only" class="ml-2 inline-block px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded">Directory</span>
+              </td>
+              <td class="px-6 py-4 text-sm font-mono text-gray-400">{{ ext.directory_only ? '—' : ext.sip_username }}</td>
               <td class="px-6 py-4 text-sm font-mono">
-                <span v-if="!visiblePasswords.has(ext.id)">
+                <span v-if="ext.directory_only" class="text-gray-400">—</span>
+                <span v-else-if="!visiblePasswords.has(ext.id)">
                   <button @click="visiblePasswords.add(ext.id)" class="text-blue-600 hover:text-blue-800 text-xs">Show</button>
                 </span>
                 <span v-else>
@@ -231,6 +278,11 @@ const blockExt = ref<number | undefined>()
 const blockReason = ref('')
 const blockError = ref('')
 
+const showDirectoryForm = ref(false)
+const dirExt = ref<number | undefined>()
+const dirCallerID = ref('')
+const dirError = ref('')
+
 async function fetchUsers() {
   const res = await api.get('/admin/users')
   users.value = res.data
@@ -256,6 +308,20 @@ async function handleBlock() {
     fetchBlocked()
   } catch (e: any) {
     blockError.value = e.response?.data?.error || 'Failed to block extension'
+  }
+}
+
+async function handleDirectoryCreate() {
+  if (!dirExt.value) return
+  dirError.value = ''
+  try {
+    await api.post('/admin/extensions/directory', { extension: dirExt.value, callerid: dirCallerID.value })
+    dirExt.value = undefined
+    dirCallerID.value = ''
+    showDirectoryForm.value = false
+    fetchAllExtensions()
+  } catch (e: any) {
+    dirError.value = e.response?.data?.error || 'Failed to create directory entry'
   }
 }
 

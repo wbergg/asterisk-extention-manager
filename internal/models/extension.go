@@ -8,14 +8,15 @@ import (
 )
 
 type Extension struct {
-	ID          int       `json:"id"`
-	Extension   int       `json:"extension"`
-	UserID      int       `json:"user_id"`
-	SIPUsername string    `json:"sip_username"`
-	SIPPassword string    `json:"sip_password"`
-	CallerID    string    `json:"callerid"`
-	Context     string    `json:"context"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID            int       `json:"id"`
+	Extension     int       `json:"extension"`
+	UserID        int       `json:"user_id"`
+	SIPUsername   string    `json:"sip_username"`
+	SIPPassword   string    `json:"sip_password"`
+	CallerID      string    `json:"callerid"`
+	Context       string    `json:"context"`
+	DirectoryOnly bool      `json:"directory_only"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 func GenerateSIPPassword() (string, error) {
@@ -55,9 +56,27 @@ func CreateExtension(db *sql.DB, ext *Extension, sipPassword string) error {
 	return nil
 }
 
+func CreateDirectoryOnlyExtension(db *sql.DB, ext *Extension) error {
+	ext.SIPUsername = fmt.Sprintf("%d", ext.Extension)
+	ext.SIPPassword = ""
+	ext.Context = "internal"
+	ext.DirectoryOnly = true
+
+	res, err := db.Exec(
+		"INSERT INTO extensions (extension, user_id, sip_username, sip_password, callerid, context, directory_only) VALUES (?, ?, ?, ?, ?, ?, 1)",
+		ext.Extension, ext.UserID, ext.SIPUsername, ext.SIPPassword, ext.CallerID, ext.Context,
+	)
+	if err != nil {
+		return err
+	}
+	id, _ := res.LastInsertId()
+	ext.ID = int(id)
+	return nil
+}
+
 func ListExtensionsByUser(db *sql.DB, userID int) ([]Extension, error) {
 	rows, err := db.Query(
-		"SELECT id, extension, user_id, sip_username, sip_password, callerid, context, created_at FROM extensions WHERE user_id = ? ORDER BY extension",
+		"SELECT id, extension, user_id, sip_username, sip_password, callerid, context, directory_only, created_at FROM extensions WHERE user_id = ? ORDER BY extension",
 		userID,
 	)
 	if err != nil {
@@ -68,7 +87,7 @@ func ListExtensionsByUser(db *sql.DB, userID int) ([]Extension, error) {
 	var exts []Extension
 	for rows.Next() {
 		var e Extension
-		if err := rows.Scan(&e.ID, &e.Extension, &e.UserID, &e.SIPUsername, &e.SIPPassword, &e.CallerID, &e.Context, &e.CreatedAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.Extension, &e.UserID, &e.SIPUsername, &e.SIPPassword, &e.CallerID, &e.Context, &e.DirectoryOnly, &e.CreatedAt); err != nil {
 			return nil, err
 		}
 		exts = append(exts, e)
@@ -77,7 +96,7 @@ func ListExtensionsByUser(db *sql.DB, userID int) ([]Extension, error) {
 }
 
 func ListAllExtensions(db *sql.DB) ([]Extension, error) {
-	rows, err := db.Query("SELECT id, extension, user_id, sip_username, sip_password, callerid, context, created_at FROM extensions ORDER BY extension")
+	rows, err := db.Query("SELECT id, extension, user_id, sip_username, sip_password, callerid, context, directory_only, created_at FROM extensions ORDER BY extension")
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +105,7 @@ func ListAllExtensions(db *sql.DB) ([]Extension, error) {
 	var exts []Extension
 	for rows.Next() {
 		var e Extension
-		if err := rows.Scan(&e.ID, &e.Extension, &e.UserID, &e.SIPUsername, &e.SIPPassword, &e.CallerID, &e.Context, &e.CreatedAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.Extension, &e.UserID, &e.SIPUsername, &e.SIPPassword, &e.CallerID, &e.Context, &e.DirectoryOnly, &e.CreatedAt); err != nil {
 			return nil, err
 		}
 		exts = append(exts, e)
@@ -97,9 +116,9 @@ func ListAllExtensions(db *sql.DB) ([]Extension, error) {
 func GetExtension(db *sql.DB, extNum int, userID int) (*Extension, error) {
 	e := &Extension{}
 	err := db.QueryRow(
-		"SELECT id, extension, user_id, sip_username, sip_password, callerid, context, created_at FROM extensions WHERE extension = ? AND user_id = ?",
+		"SELECT id, extension, user_id, sip_username, sip_password, callerid, context, directory_only, created_at FROM extensions WHERE extension = ? AND user_id = ?",
 		extNum, userID,
-	).Scan(&e.ID, &e.Extension, &e.UserID, &e.SIPUsername, &e.SIPPassword, &e.CallerID, &e.Context, &e.CreatedAt)
+	).Scan(&e.ID, &e.Extension, &e.UserID, &e.SIPUsername, &e.SIPPassword, &e.CallerID, &e.Context, &e.DirectoryOnly, &e.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -121,9 +140,9 @@ func DeleteExtension(db *sql.DB, extNum int, userID int) error {
 func GetExtensionByNumber(db *sql.DB, extNum int) (*Extension, error) {
 	e := &Extension{}
 	err := db.QueryRow(
-		"SELECT id, extension, user_id, sip_username, sip_password, callerid, context, created_at FROM extensions WHERE extension = ?",
+		"SELECT id, extension, user_id, sip_username, sip_password, callerid, context, directory_only, created_at FROM extensions WHERE extension = ?",
 		extNum,
-	).Scan(&e.ID, &e.Extension, &e.UserID, &e.SIPUsername, &e.SIPPassword, &e.CallerID, &e.Context, &e.CreatedAt)
+	).Scan(&e.ID, &e.Extension, &e.UserID, &e.SIPUsername, &e.SIPPassword, &e.CallerID, &e.Context, &e.DirectoryOnly, &e.CreatedAt)
 	if err != nil {
 		return nil, err
 	}

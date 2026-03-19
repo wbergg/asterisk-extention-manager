@@ -79,6 +79,7 @@ func main() {
 			r.Put("/api/admin/users/{id}", userHandler.Update)
 			r.Delete("/api/admin/users/{id}", userHandler.Delete)
 			r.Get("/api/admin/extensions", extHandler.ListAll)
+			r.Post("/api/admin/extensions/directory", extHandler.AdminCreateDirectory)
 			r.Put("/api/admin/extensions/{ext}", extHandler.AdminUpdate)
 			r.Delete("/api/admin/extensions/{ext}", extHandler.AdminDelete)
 			r.Post("/api/admin/sync", extHandler.ForceSync)
