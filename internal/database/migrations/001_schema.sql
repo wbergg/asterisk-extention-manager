@@ -1,23 +1,25 @@
 CREATE TABLE IF NOT EXISTS users (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    username   TEXT NOT NULL UNIQUE,
-    password   TEXT NOT NULL,
-    role       TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin','user')),
-    min_ext    INTEGER NOT NULL DEFAULT 0,
-    max_ext    INTEGER NOT NULL DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    username        TEXT NOT NULL UNIQUE,
+    password        TEXT NOT NULL,
+    role            TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin','user')),
+    min_ext         INTEGER NOT NULL DEFAULT 0,
+    max_ext         INTEGER NOT NULL DEFAULT 0,
+    call_log_access BOOLEAN NOT NULL DEFAULT 1,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS extensions (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    extension    INTEGER NOT NULL UNIQUE,
-    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    sip_username TEXT NOT NULL UNIQUE,
-    sip_password TEXT NOT NULL,
-    callerid     TEXT NOT NULL DEFAULT '',
-    context      TEXT NOT NULL DEFAULT 'internal',
-    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    extension      INTEGER NOT NULL UNIQUE,
+    user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    sip_username   TEXT NOT NULL UNIQUE,
+    sip_password   TEXT NOT NULL,
+    callerid       TEXT NOT NULL DEFAULT '',
+    context        TEXT NOT NULL DEFAULT 'internal',
+    directory_only INTEGER NOT NULL DEFAULT 0,
+    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS audit_log (
@@ -27,3 +29,14 @@ CREATE TABLE IF NOT EXISTS audit_log (
     detail     TEXT NOT NULL DEFAULT '',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS blocked_extensions (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    extension  INTEGER NOT NULL UNIQUE,
+    reason     TEXT NOT NULL DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_extensions_user_id ON extensions(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_user_id ON audit_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at);
