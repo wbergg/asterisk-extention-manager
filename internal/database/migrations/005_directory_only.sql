@@ -1,0 +1,1 @@
+ALTER TABLE extensions ADD COLUMN directory_only INTEGER NOT NULL DEFAULT 0;
