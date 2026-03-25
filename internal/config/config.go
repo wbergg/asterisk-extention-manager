@@ -18,8 +18,10 @@ type Config struct {
 	CDRLogPath    string `json:"cdr_log_path"`
 	TLSDomain     string `json:"tls_domain"`
 	TLSCertDir    string `json:"tls_cert_dir"`
-	TLSCertFile   string `json:"tls_cert_file"`
-	TLSKeyFile    string `json:"tls_key_file"`
+	TLSCertFile    string `json:"tls_cert_file"`
+	TLSKeyFile     string `json:"tls_key_file"`
+	FaxStoragePath string `json:"fax_storage_path"`
+	FaxSpoolPath   string `json:"fax_spool_path"`
 }
 
 var Loaded *Config

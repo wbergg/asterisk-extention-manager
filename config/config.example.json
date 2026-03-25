@@ -10,5 +10,7 @@
     "tls_domain": "",
     "tls_cert_dir": "./certs",
     "tls_cert_file": "",
-    "tls_key_file": ""
+    "tls_key_file": "",
+    "fax_storage_path": "./data/fax",
+    "fax_spool_path": "/var/spool/asterisk/outgoing"
 }

@@ -5,12 +5,14 @@ import AdminView from '../views/AdminView.vue'
 import CallLogView from '../views/CallLogView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import DirectoryView from '../views/DirectoryView.vue'
+import FaxView from '../views/FaxView.vue'
 import { useAuthStore } from '../stores/auth'
 
 const routes = [
   { path: '/login', component: LoginView },
   { path: '/extensions', component: DashboardView, meta: { requiresAuth: true } },
   { path: '/directory', component: DirectoryView, meta: { requiresAuth: true } },
+  { path: '/fax', component: FaxView, meta: { requiresAuth: true } },
   { path: '/settings', component: SettingsView, meta: { requiresAuth: true } },
   { path: '/call-log', component: CallLogView, meta: { requiresAuth: true, requiresCallLog: true } },
   { path: '/admin', component: AdminView, meta: { requiresAuth: true, requiresAdmin: true } },

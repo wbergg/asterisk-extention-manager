@@ -59,6 +59,9 @@
           <router-link to="/directory" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap">
             Directory
           </router-link>
+          <router-link to="/fax" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+            Fax
+          </router-link>
           <router-link v-if="authStore.hasCallLogAccess" to="/call-log" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap">
             Call Log
           </router-link>

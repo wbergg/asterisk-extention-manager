@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -39,6 +40,13 @@ func main() {
 	userHandler := &handlers.UserHandler{DB: db}
 	extHandler := &handlers.ExtensionHandler{DB: db, Config: cfg}
 	cdrHandler := &handlers.CDRHandler{Config: cfg}
+	faxHandler := &handlers.FaxHandler{DB: db, Config: cfg}
+
+	if cfg.FaxStoragePath != "" {
+		if err := os.MkdirAll(cfg.FaxStoragePath, 0755); err != nil {
+			log.Fatalf("Failed to create fax storage directory: %v", err)
+		}
+	}
 
 	r := chi.NewRouter()
 	r.Use(chimw.Logger)
@@ -61,6 +69,11 @@ func main() {
 		r.Get("/api/extensions/{ext}", extHandler.Get)
 		r.Put("/api/extensions/{ext}", extHandler.Update)
 		r.Delete("/api/extensions/{ext}", extHandler.Delete)
+
+		// Fax
+		r.Get("/api/fax/destinations", faxHandler.ListFaxDestinations)
+		r.Post("/api/fax/send", faxHandler.SendFax)
+		r.Get("/api/fax/jobs", faxHandler.ListFaxJobs)
 
 		// Call Log (accessible to users with call_log_access)
 		r.Group(func(r chi.Router) {
@@ -113,6 +126,7 @@ func main() {
 		"extensions": true,
 		"directory":  true,
 		"settings":   true,
+		"fax":        true,
 		"call-log":   true,
 		"admin":      true,
 	}
