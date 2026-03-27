@@ -20,8 +20,9 @@ type Config struct {
 	TLSCertDir    string `json:"tls_cert_dir"`
 	TLSCertFile    string `json:"tls_cert_file"`
 	TLSKeyFile     string `json:"tls_key_file"`
-	FaxStoragePath string `json:"fax_storage_path"`
-	FaxSpoolPath   string `json:"fax_spool_path"`
+	FaxStoragePath  string `json:"fax_storage_path"`
+	FaxSpoolPath    string `json:"fax_spool_path"`
+	AsteriskLogPath string `json:"asterisk_log_path"`
 }
 
 var Loaded *Config

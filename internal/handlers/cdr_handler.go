@@ -184,7 +184,7 @@ func parseCDRLine(line string) (CDRRecord, error) {
 	duration, _ := strconv.Atoi(fields[12])
 	billsec, _ := strconv.Atoi(fields[13])
 
-	return CDRRecord{
+	rec := CDRRecord{
 		Source:      fields[1],
 		Destination: fields[2],
 		CallerID:    fields[4],
@@ -196,5 +196,19 @@ func parseCDRLine(line string) (CDRRecord, error) {
 		Duration:    duration,
 		BillSec:     billsec,
 		Disposition: fields[14],
-	}, nil
+	}
+
+	// Fix CDR for outgoing fax calls: source is "fax", dest is "s",
+	// and the real destination is in the Channel field (e.g. PJSIP/2003-xxx).
+	if rec.Source == "fax" && rec.Destination == "s" {
+		if parts := strings.SplitN(rec.Channel, "/", 2); len(parts) == 2 {
+			ext := parts[1]
+			if dash := strings.Index(ext, "-"); dash >= 0 {
+				ext = ext[:dash]
+			}
+			rec.Destination = ext
+		}
+	}
+
+	return rec, nil
 }

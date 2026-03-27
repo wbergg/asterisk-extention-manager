@@ -12,6 +12,7 @@ import (
 // FaxHeader contains metadata printed at the top of the fax page.
 type FaxHeader struct {
 	To      string
+	From    string
 	Subject string
 	Message string
 }
@@ -20,6 +21,7 @@ func (h FaxHeader) text() string {
 	now := time.Now().Format("2006-01-02 15:04")
 	lines := []string{
 		fmt.Sprintf("To: %s", h.To),
+		fmt.Sprintf("From: %s", h.From),
 		fmt.Sprintf("Subject: %s", h.Subject),
 		fmt.Sprintf("Date: %s", now),
 	}
@@ -32,7 +34,7 @@ func (h FaxHeader) text() string {
 // headerHeightPx estimates the pixel height of the header block.
 // ~35px per line at pointsize 24, plus 100px top padding and 40px bottom padding.
 func (h FaxHeader) heightPx() int {
-	lineCount := 3 // To, Subject, Date
+	lineCount := 4 // To, From, Subject, Date
 	if h.Message != "" {
 		lineCount += 1 // blank line
 		lineCount += strings.Count(h.Message, "\n") + 1
@@ -168,7 +170,7 @@ func convertImage(input, output string, header FaxHeader) error {
 		"-grayscale", "Rec709Luminance",
 		"-contrast-stretch", "2%x2%",
 		"-sharpen", "0x0.5",
-		"-resize", fmt.Sprintf("%dx%d", faxWidth-100, imageH),
+		"-resize", fmt.Sprintf("%dx%d>", faxWidth-100, imageH),
 		")",
 		// Composite image below header
 		"-gravity", "North",
@@ -212,7 +214,8 @@ func convertImageLowRes(input, output string, header FaxHeader) error {
 		"-grayscale", "Rec709Luminance",
 		"-contrast-stretch", "2%x2%",
 		"-sharpen", "0x0.5",
-		"-resize", fmt.Sprintf("%dx%d", faxWidth-100, imageH),
+		"-sample", "100x48%!",
+		"-resize", fmt.Sprintf("%dx%d>", faxWidth-100, imageH),
 		")",
 		"-gravity", "North",
 		"-geometry", fmt.Sprintf("+0+%d", headerH),

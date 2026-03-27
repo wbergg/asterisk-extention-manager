@@ -154,6 +154,7 @@ func (h *FaxHandler) SendFax(w http.ResponseWriter, r *http.Request) {
 	message := r.FormValue("message")
 	header := fax.FaxHeader{
 		To:      fmt.Sprintf("%d", destExt),
+		From:    claims.Username,
 		Subject: subject,
 		Message: message,
 	}
@@ -166,7 +167,8 @@ func (h *FaxHandler) SendFax(w http.ResponseWriter, r *http.Request) {
 	job.TIFFFile = tiffPath
 
 	// Write .call file
-	callFileName, err := fax.WriteCallFile(h.Config.FaxSpoolPath, job.ID, destExt, tiffPath, jobDir)
+	callerID := fmt.Sprintf("\"Fax from %s\" <fax>", claims.Username)
+	callFileName, err := fax.WriteCallFile(h.Config.FaxSpoolPath, job.ID, destExt, tiffPath, jobDir, callerID)
 	if err != nil {
 		models.UpdateFaxJobStatus(h.DB, job.ID, "failed", err.Error())
 		http.Error(w, fmt.Sprintf(`{"error":"failed to queue fax: %s"}`, err.Error()), http.StatusInternalServerError)
@@ -195,12 +197,19 @@ func (h *FaxHandler) ListFaxJobs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update status for queued jobs by checking spool
+	// Update status for queued/attempted jobs
 	for i := range jobs {
 		if jobs[i].Status == "queued" && jobs[i].CallFile != "" {
 			if !fax.CheckCallFileExists(h.Config.FaxSpoolPath, jobs[i].CallFile) {
 				jobs[i].Status = "attempted"
 				models.UpdateFaxJobStatus(h.DB, jobs[i].ID, "attempted", "")
+			}
+		}
+		if jobs[i].Status == "attempted" && jobs[i].TIFFFile != "" {
+			if result := fax.CheckFaxResult(h.Config.AsteriskLogPath, jobs[i].TIFFFile); result != nil {
+				jobs[i].Status = result.Status
+				jobs[i].ErrorMessage = result.Error
+				models.UpdateFaxJobStatus(h.DB, jobs[i].ID, result.Status, result.Error)
 			}
 		}
 	}

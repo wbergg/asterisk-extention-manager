@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/user"
 	"path/filepath"
+	"strconv"
 )
 
-func WriteCallFile(spoolPath string, jobID int, targetExtension int, tiffPath string, tempDir string) (string, error) {
-	content := fmt.Sprintf("Channel: PJSIP/%d\nMaxRetries: 1\nRetryTime: 60\nWaitTime: 30\nApplication: SendFAX\nData: %s,d,f\n",
-		targetExtension, tiffPath)
+func WriteCallFile(spoolPath string, jobID int, targetExtension int, tiffPath string, tempDir string, callerID string) (string, error) {
+	content := fmt.Sprintf("Channel: PJSIP/%d\nCallerID: %s\nMaxRetries: 1\nRetryTime: 60\nWaitTime: 30\nApplication: SendFAX\nData: %s,d,f\n",
+		targetExtension, callerID, tiffPath)
 
 	callFileName := fmt.Sprintf("fax_%d.call", jobID)
 	finalPath := filepath.Join(spoolPath, callFileName)
@@ -35,6 +37,13 @@ func WriteCallFile(spoolPath string, jobID int, targetExtension int, tiffPath st
 		return "", fmt.Errorf("copy call file to spool: %w", err)
 	}
 	os.Remove(tmpPath)
+
+	// Chown to asterisk user so Asterisk can set utime on the file
+	if u, err := user.Lookup("asterisk"); err == nil {
+		uid, _ := strconv.Atoi(u.Uid)
+		gid, _ := strconv.Atoi(u.Gid)
+		os.Chown(finalPath, uid, gid)
+	}
 
 	return callFileName, nil
 }
