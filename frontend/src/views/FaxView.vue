@@ -36,6 +36,16 @@
         </div>
 
         <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Message (optional)</label>
+          <textarea
+            v-model="message"
+            rows="4"
+            placeholder="Text to append as an extra page"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+          ></textarea>
+        </div>
+
+        <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">File</label>
           <div
             @dragover.prevent="dragOver = true"
@@ -141,6 +151,7 @@ const faxStore = useFaxStore()
 
 const subject = ref('')
 const destination = ref<number | ''>('')
+const message = ref('')
 const selectedFile = ref<File | null>(null)
 const dragOver = ref(false)
 const successMsg = ref('')
@@ -174,10 +185,11 @@ async function handleSend() {
   successMsg.value = ''
   faxStore.error = null
   try {
-    await faxStore.sendFax(subject.value, destination.value as number, selectedFile.value)
+    await faxStore.sendFax(subject.value, destination.value as number, selectedFile.value, message.value)
     successMsg.value = 'Fax queued successfully'
     subject.value = ''
     destination.value = ''
+    message.value = ''
     selectedFile.value = null
     if (fileInput.value) fileInput.value.value = ''
   } catch {

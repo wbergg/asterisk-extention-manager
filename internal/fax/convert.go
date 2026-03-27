@@ -6,14 +6,53 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
-func ConvertToTIFF(inputPath, outputDir string) (string, error) {
+// FaxHeader contains metadata printed at the top of the fax page.
+type FaxHeader struct {
+	To      string
+	Subject string
+	Message string
+}
+
+func (h FaxHeader) text() string {
+	now := time.Now().Format("2006-01-02 15:04")
+	lines := []string{
+		fmt.Sprintf("To: %s", h.To),
+		fmt.Sprintf("Subject: %s", h.Subject),
+		fmt.Sprintf("Date: %s", now),
+	}
+	if h.Message != "" {
+		lines = append(lines, "", h.Message)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// headerHeightPx estimates the pixel height of the header block.
+// ~35px per line at pointsize 24, plus 100px top padding and 40px bottom padding.
+func (h FaxHeader) heightPx() int {
+	lineCount := 3 // To, Subject, Date
+	if h.Message != "" {
+		lineCount += 1 // blank line
+		lineCount += strings.Count(h.Message, "\n") + 1
+	}
+	return 100 + lineCount*35 + 40
+}
+
+const (
+	faxWidth    = 1728
+	faxHeight   = 2292
+	faxDensity  = "204x196"
+	faxLowDensity = "204x98"
+	faxLowHeight  = 1146
+)
+
+func ConvertToTIFF(inputPath, outputDir string, header FaxHeader) (string, error) {
 	ext := strings.ToLower(filepath.Ext(inputPath))
 	outName := strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath)) + ".tiff"
 	outPath := filepath.Join(outputDir, outName)
 
-	// Check input file size
 	inputInfo, err := os.Stat(inputPath)
 	if err != nil {
 		return "", fmt.Errorf("stat input: %w", err)
@@ -31,13 +70,16 @@ func ConvertToTIFF(inputPath, outputDir string) (string, error) {
 				return "", err
 			}
 		}
+		if err := annotateHeader(outPath, header); err != nil {
+			return "", err
+		}
 	case ".png", ".jpg", ".jpeg":
 		if largeFile {
-			if err := convertImageLowRes(inputPath, outPath); err != nil {
+			if err := convertImageLowRes(inputPath, outPath, header); err != nil {
 				return "", err
 			}
 		} else {
-			if err := convertImage(inputPath, outPath); err != nil {
+			if err := convertImage(inputPath, outPath, header); err != nil {
 				return "", err
 			}
 		}
@@ -49,11 +91,13 @@ func ConvertToTIFF(inputPath, outputDir string) (string, error) {
 }
 
 func convertPDF(input, output string) error {
+	// -dLastPage=1 limits to first page only
 	cmd := exec.Command("gs",
 		"-q", "-dNOPAUSE", "-dBATCH",
 		"-sDEVICE=tiffg3",
 		"-r204x196",
 		"-dPDFFitPage",
+		"-dLastPage=1",
 		"-g1728x2292",
 		"-sOutputFile="+output,
 		input,
@@ -71,6 +115,7 @@ func convertPDFLowRes(input, output string) error {
 		"-sDEVICE=tiffg3",
 		"-r204x98",
 		"-dPDFFitPage",
+		"-dLastPage=1",
 		"-g1728x1146",
 		"-sOutputFile="+output,
 		input,
@@ -82,25 +127,63 @@ func convertPDFLowRes(input, output string) error {
 	return nil
 }
 
-func convertImage(input, output string) error {
+// annotateHeader draws the header text at the top of an existing TIFF (for PDFs).
+func annotateHeader(tiffPath string, header FaxHeader) error {
 	cmd := exec.Command("convert",
-		input,
+		tiffPath,
+		"-font", "Courier",
+		"-pointsize", "24",
+		"-fill", "black",
+		"-gravity", "NorthWest",
+		"-annotate", "+50+30", header.text(),
+		"-compress", "Fax",
+		"-type", "bilevel",
+		tiffPath,
+	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("annotate header: %w (output: %s)", err, string(out))
+	}
+	return nil
+}
+
+func convertImage(input, output string, header FaxHeader) error {
+	headerH := header.heightPx()
+	imageH := faxHeight - headerH
+
+	args := []string{
+		// Create white canvas
+		"-size", fmt.Sprintf("%dx%d", faxWidth, faxHeight), "xc:white",
+		// Draw header text
+		"-font", "Courier",
+		"-pointsize", "24",
+		"-fill", "black",
+		"-gravity", "NorthWest",
+		"-annotate", "+50+30", header.text(),
+		// Load and prepare image
+		"(", input,
 		"-background", "white",
 		"-alpha", "remove",
 		"-alpha", "off",
-		"-gravity", "center",
-		"-extent", "1728x2292",
 		"-grayscale", "Rec709Luminance",
 		"-contrast-stretch", "2%x2%",
 		"-sharpen", "0x0.5",
+		"-resize", fmt.Sprintf("%dx%d", faxWidth-100, imageH),
+		")",
+		// Composite image below header
+		"-gravity", "North",
+		"-geometry", fmt.Sprintf("+0+%d", headerH),
+		"-composite",
+		// Final fax conversion
 		"-dither", "FloydSteinberg",
 		"-colors", "2",
-		"-density", "204x196",
+		"-density", faxDensity,
 		"-units", "PixelsPerInch",
 		"-compress", "Fax",
 		"-type", "bilevel",
 		output,
-	)
+	}
+	cmd := exec.Command("convert", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("imagemagick: %w (output: %s)", err, string(out))
@@ -108,26 +191,41 @@ func convertImage(input, output string) error {
 	return nil
 }
 
-func convertImageLowRes(input, output string) error {
-	cmd := exec.Command("convert",
-		input,
+func convertImageLowRes(input, output string, header FaxHeader) error {
+	headerH := header.heightPx()
+	imageH := faxLowHeight - headerH
+	if imageH < 200 {
+		imageH = 200
+	}
+
+	args := []string{
+		"-size", fmt.Sprintf("%dx%d", faxWidth, faxLowHeight), "xc:white",
+		"-font", "Courier",
+		"-pointsize", "24",
+		"-fill", "black",
+		"-gravity", "NorthWest",
+		"-annotate", "+50+30", header.text(),
+		"(", input,
 		"-background", "white",
 		"-alpha", "remove",
 		"-alpha", "off",
-		"-resize", "1600x1050",
-		"-gravity", "center",
-		"-extent", "1728x1146",
 		"-grayscale", "Rec709Luminance",
 		"-contrast-stretch", "2%x2%",
 		"-sharpen", "0x0.5",
+		"-resize", fmt.Sprintf("%dx%d", faxWidth-100, imageH),
+		")",
+		"-gravity", "North",
+		"-geometry", fmt.Sprintf("+0+%d", headerH),
+		"-composite",
 		"-dither", "FloydSteinberg",
 		"-colors", "2",
-		"-density", "204x98",
+		"-density", faxLowDensity,
 		"-units", "PixelsPerInch",
 		"-compress", "Fax",
 		"-type", "bilevel",
 		output,
-	)
+	}
+	cmd := exec.Command("convert", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("imagemagick low-res: %w (output: %s)", err, string(out))

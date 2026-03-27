@@ -97,14 +97,14 @@ func (h *FaxHandler) SendFax(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, header, err := r.FormFile("file")
+	file, fileHeader, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, `{"error":"file is required"}`, http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
-	fileExt := strings.ToLower(filepath.Ext(header.Filename))
+	fileExt := strings.ToLower(filepath.Ext(fileHeader.Filename))
 	if !allowedFaxExts[fileExt] {
 		http.Error(w, `{"error":"unsupported file type, use PDF, PNG, or JPG"}`, http.StatusBadRequest)
 		return
@@ -150,8 +150,14 @@ func (h *FaxHandler) SendFax(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to TIFF
-	tiffPath, err := fax.ConvertToTIFF(originalPath, jobDir)
+	// Convert to TIFF with header (to, subject, date, message) and image on one page
+	message := r.FormValue("message")
+	header := fax.FaxHeader{
+		To:      fmt.Sprintf("%d", destExt),
+		Subject: subject,
+		Message: message,
+	}
+	tiffPath, err := fax.ConvertToTIFF(originalPath, jobDir, header)
 	if err != nil {
 		models.UpdateFaxJobStatus(h.DB, job.ID, "failed", err.Error())
 		http.Error(w, fmt.Sprintf(`{"error":"conversion failed: %s"}`, err.Error()), http.StatusInternalServerError)

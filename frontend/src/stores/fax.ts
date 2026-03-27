@@ -49,7 +49,7 @@ export const useFaxStore = defineStore('fax', () => {
     }
   }
 
-  async function sendFax(subject: string, destination: number, file: File) {
+  async function sendFax(subject: string, destination: number, file: File, message: string) {
     sending.value = true
     error.value = null
     try {
@@ -57,6 +57,7 @@ export const useFaxStore = defineStore('fax', () => {
       formData.append('subject', subject)
       formData.append('destination', String(destination))
       formData.append('file', file)
+      if (message) formData.append('message', message)
       const res = await api.post('/fax/send', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
