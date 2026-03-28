@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/wbergg/asterisk-extention-manager/internal/asterisk"
@@ -440,12 +441,33 @@ func (h *ExtensionHandler) Directory(w http.ResponseWriter, r *http.Request) {
 			name = fmt.Sprintf("%d", ext.Extension)
 		}
 		dir.Entries = append(dir.Entries, ciscoDirectoryEntry{
-			Name:      name,
+			Name:      sanitize(name),
 			Telephone: fmt.Sprintf("%d", ext.Extension),
 		})
 	}
 
-	w.Header().Set("Content-Type", "text/xml; charset=utf-8")
-	w.Write([]byte(xml.Header))
+	w.Header().Set("Content-Type", "text/xml")
 	xml.NewEncoder(w).Encode(dir)
+}
+
+// sanitize characters with ASCII equivalents and drops anything else non-ASCII
+var asciiReplacements = strings.NewReplacer(
+	"å", "a", "Å", "A",
+	"ä", "a", "Ä", "A",
+	"ö", "o", "Ö", "O",
+	"ü", "u", "Ü", "U",
+	"é", "e", "É", "E",
+	"è", "e", "È", "E",
+	"ø", "o", "Ø", "O",
+	"æ", "ae", "Æ", "AE",
+)
+
+func sanitize(s string) string {
+	s = asciiReplacements.Replace(s)
+	return strings.Map(func(r rune) rune {
+		if r > unicode.MaxASCII {
+			return -1
+		}
+		return r
+	}, s)
 }
