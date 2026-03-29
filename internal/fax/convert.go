@@ -45,9 +45,7 @@ func (h FaxHeader) heightPx() int {
 const (
 	faxWidth    = 1728
 	faxHeight   = 2292
-	faxDensity  = "204x196"
-	faxLowDensity = "204x98"
-	faxLowHeight  = 1146
+	faxDensity = "204x196"
 )
 
 func ConvertToTIFF(inputPath, outputDir string, header FaxHeader) (string, error) {
@@ -59,7 +57,7 @@ func ConvertToTIFF(inputPath, outputDir string, header FaxHeader) (string, error
 	if err != nil {
 		return "", fmt.Errorf("stat input: %w", err)
 	}
-	largeFile := inputInfo.Size() > 100*1024
+	largeFile := inputInfo.Size() > 250*1024
 
 	switch ext {
 	case ".pdf":
@@ -76,20 +74,38 @@ func ConvertToTIFF(inputPath, outputDir string, header FaxHeader) (string, error
 			return "", err
 		}
 	case ".png", ".jpg", ".jpeg":
+		// Shrink large images to ~250KB before TIFF conversion
 		if largeFile {
-			if err := convertImageLowRes(inputPath, outPath, header); err != nil {
-				return "", err
+			shrunk, err := shrinkImage(inputPath, outputDir)
+			if err != nil {
+				return "", fmt.Errorf("shrink image: %w", err)
 			}
-		} else {
-			if err := convertImage(inputPath, outPath, header); err != nil {
-				return "", err
-			}
+			inputPath = shrunk
+		}
+		if err := convertImage(inputPath, outPath, header); err != nil {
+			return "", err
 		}
 	default:
 		return "", fmt.Errorf("unsupported file type: %s", ext)
 	}
 
 	return outPath, nil
+}
+
+// shrinkImage resizes a large image down to approximately 250KB using ImageMagick.
+func shrinkImage(input, outputDir string) (string, error) {
+	shrunkPath := filepath.Join(outputDir, "shrunk.jpg")
+	cmd := exec.Command("convert",
+		input,
+		"-resize", "1728x2292>",
+		"-define", "jpeg:extent=250kb",
+		shrunkPath,
+	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("shrink image: %w (output: %s)", err, string(out))
+	}
+	return shrunkPath, nil
 }
 
 func convertPDF(input, output string) error {
@@ -189,49 +205,6 @@ func convertImage(input, output string, header FaxHeader) error {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("imagemagick: %w (output: %s)", err, string(out))
-	}
-	return nil
-}
-
-func convertImageLowRes(input, output string, header FaxHeader) error {
-	headerH := header.heightPx()
-	imageH := faxLowHeight - headerH
-	if imageH < 200 {
-		imageH = 200
-	}
-
-	args := []string{
-		"-size", fmt.Sprintf("%dx%d", faxWidth, faxLowHeight), "xc:white",
-		"-font", "Courier",
-		"-pointsize", "24",
-		"-fill", "black",
-		"-gravity", "NorthWest",
-		"-annotate", "+50+30", header.text(),
-		"(", input,
-		"-background", "white",
-		"-alpha", "remove",
-		"-alpha", "off",
-		"-grayscale", "Rec709Luminance",
-		"-contrast-stretch", "2%x2%",
-		"-sharpen", "0x0.5",
-		"-sample", "100x48%!",
-		"-resize", fmt.Sprintf("%dx%d>", faxWidth-100, imageH),
-		")",
-		"-gravity", "North",
-		"-geometry", fmt.Sprintf("+0+%d", headerH),
-		"-composite",
-		"-dither", "FloydSteinberg",
-		"-colors", "2",
-		"-density", faxLowDensity,
-		"-units", "PixelsPerInch",
-		"-compress", "Fax",
-		"-type", "bilevel",
-		output,
-	}
-	cmd := exec.Command("convert", args...)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("imagemagick low-res: %w (output: %s)", err, string(out))
 	}
 	return nil
 }
