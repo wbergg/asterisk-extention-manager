@@ -43,8 +43,8 @@ func (h FaxHeader) heightPx() int {
 }
 
 const (
-	faxWidth    = 1728
-	faxHeight   = 2292
+	faxWidth   = 1728
+	faxHeight  = 2292
 	faxDensity = "204x196"
 )
 
@@ -184,7 +184,7 @@ func convertImage(input, output string, header FaxHeader) error {
 		"-alpha", "remove",
 		"-alpha", "off",
 		"-grayscale", "Rec709Luminance",
-		"-contrast-stretch", "2%x2%",
+		"-contrast-stretch", "15%x15%",
 		"-sharpen", "0x0.5",
 		"-resize", fmt.Sprintf("%dx%d>", faxWidth-100, imageH),
 		")",
