@@ -71,7 +71,7 @@
         </thead>
         <tbody class="divide-y divide-gray-200">
           <tr v-for="(call, idx) in cdrRecords" :key="idx">
-            <td class="px-6 py-4 text-sm text-gray-500">{{ call.start }}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">{{ formatTime(call.start) }}</td>
             <td class="px-6 py-4 text-sm font-mono font-semibold">{{ call.source }}</td>
             <td class="px-6 py-4 text-sm font-mono font-semibold">{{ call.destination }}</td>
             <td class="px-6 py-4 text-sm">{{ call.callerid }}</td>
@@ -235,6 +235,21 @@ function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
   return m > 0 ? `${m}m ${s}s` : `${s}s`
+}
+
+function formatTime(ts: string): string {
+  if (!ts) return ''
+  const d = new Date(ts.replace(' ', 'T') + 'Z')
+  if (isNaN(d.getTime())) return ts
+  return d.toLocaleString(undefined, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  })
 }
 
 function dispositionCssClass(disposition: string): string {
