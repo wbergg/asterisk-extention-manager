@@ -32,14 +32,14 @@ func (h FaxHeader) text() string {
 }
 
 // headerHeightPx estimates the pixel height of the header block.
-// ~35px per line at pointsize 24, plus 100px top padding and 40px bottom padding.
+// ~35px per line at pointsize 24, plus 100px top padding and 20px bottom padding.
 func (h FaxHeader) heightPx() int {
 	lineCount := 4 // To, From, Subject, Date
 	if h.Message != "" {
 		lineCount += 1 // blank line
 		lineCount += strings.Count(h.Message, "\n") + 1
 	}
-	return 100 + lineCount*35 + 40
+	return 100 + lineCount*35 + 20
 }
 
 const (
@@ -184,7 +184,7 @@ func convertImage(input, output string, header FaxHeader) error {
 		"-alpha", "remove",
 		"-alpha", "off",
 		"-grayscale", "Rec709Luminance",
-		"-contrast-stretch", "15%x15%",
+		"-contrast-stretch", "30%x30%",
 		"-sharpen", "0x0.5",
 		"-resize", fmt.Sprintf("%dx%d>", faxWidth-100, imageH),
 		")",
